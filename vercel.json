@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/day-market",
+      "schedule": "30 18 * * 1-5"
+    },
+    {
+      "path": "/api/cron/night-market",
+      "schedule": "10 6 * * 2-6"
+    }
+  ]
+}

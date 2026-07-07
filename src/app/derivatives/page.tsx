@@ -1,0 +1,114 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+export default function DerivativesPage() {
+  const k2i1Ref = useRef<HTMLDivElement>(null);
+  const vkospiRef = useRef<HTMLDivElement>(null);
+
+  const [isLoadingCharts, setIsLoadingCharts] = useState(true);
+
+  useEffect(() => {
+    async function renderCharts() {
+      if (!(window as any).LightweightCharts) return;
+
+      try {
+        const [k2i1Res, vkospiRes] = await Promise.all([
+          fetch('/api/chart-data/domestic?symbol=K2I1'),
+          fetch('/api/chart-data/domestic?symbol=VKOSPI')
+        ]);
+        
+        const k2i1Json = await k2i1Res.json();
+        const vkospiJson = await vkospiRes.json();
+
+        setIsLoadingCharts(false);
+
+        // KOSPI 200 선물 (K2I1) 차트
+        if (k2i1Ref.current && !k2i1Ref.current.hasChildNodes() && k2i1Json.success) {
+          const k2i1Chart = (window as any).LightweightCharts.createChart(k2i1Ref.current, {
+            width: k2i1Ref.current.clientWidth,
+            height: 384,
+            layout: { background: { color: '#ffffff' }, textColor: '#333' },
+          });
+          const k2i1Series = k2i1Chart.addLineSeries({ color: '#2563eb', lineWidth: 2 });
+          const mappedK2i1Data = k2i1Json.data.map((d: any) => ({ time: d.time, value: d.close || d.value }));
+          k2i1Series.setData(mappedK2i1Data);
+          k2i1Chart.timeScale().fitContent();
+        }
+
+        // VKOSPI 차트
+        if (vkospiRef.current && !vkospiRef.current.hasChildNodes() && vkospiJson.success) {
+          const vkospiChart = (window as any).LightweightCharts.createChart(vkospiRef.current, {
+            width: vkospiRef.current.clientWidth,
+            height: 384,
+            layout: { background: { color: '#ffffff' }, textColor: '#333' },
+          });
+          const vkospiSeries = vkospiChart.addLineSeries({ color: '#9333ea', lineWidth: 2 });
+          const mappedVkospiData = vkospiJson.data.map((d: any) => ({ time: d.time, value: d.close || d.value }));
+          vkospiSeries.setData(mappedVkospiData);
+          vkospiChart.timeScale().fitContent();
+        }
+      } catch (err) {
+        console.error("Failed to load derivative chart data", err);
+        setIsLoadingCharts(false);
+      }
+    }
+    
+    renderCharts();
+  }, []);
+
+  return (
+    <div className="max-w-6xl mx-auto py-12 px-4 space-y-12">
+      <h1 className="text-3xl font-extrabold text-gray-900 border-b pb-4">파생분석 센터 (선물/옵션)</h1>
+
+      {/* 위클리 양합 타임라인 섹션 (복구됨) */}
+      <section>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">위클리 양합 타임라인</h2>
+        <div className="relative border-l-4 border-blue-500 ml-4 py-2 space-y-8">
+          <div className="relative pl-6">
+            <span className="absolute -left-[14px] bg-blue-500 w-6 h-6 rounded-full border-4 border-white shadow-sm"></span>
+            <div className="bg-white border rounded-lg p-5 shadow-sm hover:shadow-md transition">
+              <h3 className="font-bold text-lg text-blue-800">최근 만기일 (D-Day)</h3>
+              <p className="text-sm text-gray-500 mt-1">2026년 7월 둘째 주 위클리 옵션 만기</p>
+              <div className="mt-3 flex items-center justify-between text-gray-700 font-medium">
+                <span>양합 (ATM 기준)</span>
+                <span className="text-red-500 text-xl font-bold">4.25</span>
+              </div>
+            </div>
+          </div>
+          <div className="relative pl-6">
+            <span className="absolute -left-[14px] bg-gray-300 w-6 h-6 rounded-full border-4 border-white shadow-sm"></span>
+            <div className="bg-gray-50 border rounded-lg p-5">
+              <h3 className="font-bold text-lg text-gray-700">D-1 (변동성 축소 구간)</h3>
+              <p className="text-sm text-gray-500 mt-1">감마 리스크 프리미엄 축소 진행 중</p>
+              <div className="mt-3 flex items-center justify-between text-gray-700">
+                <span>프리미엄 붕괴 예측</span>
+                <span className="text-gray-500 text-lg font-bold">~ 20% 감소</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="border rounded-lg p-4 shadow-sm bg-white">
+            <h3 className="font-semibold text-blue-800 mb-2">KOSPI 200 선물 (K2I1)</h3>
+            <div className="h-96 relative">
+              <div ref={k2i1Ref} className="absolute inset-0" />
+              {isLoadingCharts && <div className="absolute inset-0 bg-gray-100 animate-pulse rounded-md border flex items-center justify-center text-gray-400 z-10">Loading Chart Data...</div>}
+            </div>
+          </div>
+          <div className="border rounded-lg p-4 shadow-sm bg-white">
+            <h3 className="font-semibold text-purple-700 mb-2">VKOSPI (변동성 지수)</h3>
+            <div className="h-96 relative">
+              <div ref={vkospiRef} className="absolute inset-0" />
+              {isLoadingCharts && <div className="absolute inset-0 bg-gray-100 animate-pulse rounded-md border flex items-center justify-center text-gray-400 z-10">Loading Chart Data...</div>}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
