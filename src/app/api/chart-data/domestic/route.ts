@@ -99,61 +99,19 @@ export async function GET(request: Request) {
       });
     }
 
-    // 캐시도 없고 공공데이터포털 API도 실패한 경우를 대비한 모의 데이터 (로컬 테스트용)
+    // API 실패 시 모의 데이터 제공을 중단하고 실패 반환
     if (symbol === '005930' || symbol === '000660') {
-      const today = new Date();
-      let baseVal = symbol === '005930' ? 80000 : 180000;
-      const mockSeries = [];
-      for (let i = 180; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        if (d.getDay() === 0 || d.getDay() === 6) continue;
-        
-        const open = baseVal + (Math.random() - 0.5) * (baseVal * 0.05);
-        const high = open + Math.random() * (baseVal * 0.02);
-        const low = open - Math.random() * (baseVal * 0.02);
-        const close = (open + high + low) / 3;
-        
-        mockSeries.push({
-          time: d.toISOString().split('T')[0],
-          open, high, low, close
-        });
-        baseVal = close;
-      }
       return NextResponse.json({ 
-        success: true, 
-        data: mockSeries, 
-        cached: false, 
-        warning: 'Fallback to mock data due to API failure/missing key.' 
-      });
+        success: false, 
+        error: '데이터를 불러오지 못했습니다.' 
+      }, { status: 500 });
     }
 
     if (symbol === 'K2I1' || symbol === 'VKOSPI') {
-      const today = new Date();
-      let baseVal = symbol === 'K2I1' ? 350 : 15;
-      const mockSeries = [];
-      for (let i = 180; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        if (d.getDay() === 0 || d.getDay() === 6) continue;
-        
-        const open = baseVal + (Math.random() - 0.5) * (symbol === 'K2I1' ? 5 : 0.5);
-        const high = open + Math.random() * (symbol === 'K2I1' ? 3 : 0.3);
-        const low = open - Math.random() * (symbol === 'K2I1' ? 3 : 0.3);
-        const close = (open + high + low) / 3;
-        
-        mockSeries.push({
-          time: d.toISOString().split('T')[0],
-          open, high, low, close
-        });
-        baseVal = close;
-      }
       return NextResponse.json({ 
-        success: true, 
-        data: mockSeries, 
-        cached: false, 
-        warning: 'Fallback to mock data due to API failure/missing key.' 
-      });
+        success: false, 
+        error: '데이터를 불러오지 못했습니다.' 
+      }, { status: 500 });
     }
 
     return NextResponse.json({

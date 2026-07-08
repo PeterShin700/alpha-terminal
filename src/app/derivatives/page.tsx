@@ -8,9 +8,29 @@ export default function DerivativesPage() {
   const vkospiRef = useRef<HTMLDivElement>(null);
 
   const [isLoadingCharts, setIsLoadingCharts] = useState(true);
+  const [chartErrors, setChartErrors] = useState({ k2i1: false, vkospi: false });
+  const [isOptionsLoading, setIsOptionsLoading] = useState(true);
+  const [optionsData, setOptionsData] = useState<any>(null);
 
   useEffect(() => {
-    async function renderCharts() {
+    async function loadData() {
+      // 1. Fetch Option Data
+      try {
+        const marketRes = await fetch('/api/market-data');
+        const marketJson = await marketRes.json();
+        if (marketJson.data && marketJson.data.weeklyOption) {
+          setOptionsData(marketJson.data.weeklyOption);
+        } else {
+          setOptionsData(null);
+        }
+      } catch (err) {
+        console.error("Failed to load options data", err);
+        setOptionsData(null);
+      } finally {
+        setIsOptionsLoading(false);
+      }
+
+      // 2. Fetch Chart Data
       if (!(window as any).LightweightCharts) return;
 
       try {
@@ -25,7 +45,9 @@ export default function DerivativesPage() {
         setIsLoadingCharts(false);
 
         // KOSPI 200 선물 (K2I1) 차트
-        if (k2i1Ref.current && !k2i1Ref.current.hasChildNodes() && k2i1Json.success) {
+        if (!k2i1Json.success) {
+          setChartErrors(prev => ({ ...prev, k2i1: true }));
+        } else if (k2i1Ref.current && !k2i1Ref.current.hasChildNodes()) {
           const k2i1Chart = (window as any).LightweightCharts.createChart(k2i1Ref.current, {
             width: k2i1Ref.current.clientWidth,
             height: 384,
@@ -38,7 +60,9 @@ export default function DerivativesPage() {
         }
 
         // VKOSPI 차트
-        if (vkospiRef.current && !vkospiRef.current.hasChildNodes() && vkospiJson.success) {
+        if (!vkospiJson.success) {
+          setChartErrors(prev => ({ ...prev, vkospi: true }));
+        } else if (vkospiRef.current && !vkospiRef.current.hasChildNodes()) {
           const vkospiChart = (window as any).LightweightCharts.createChart(vkospiRef.current, {
             width: vkospiRef.current.clientWidth,
             height: 384,
@@ -55,7 +79,7 @@ export default function DerivativesPage() {
       }
     }
     
-    renderCharts();
+    loadData();
   }, []);
 
   return (
@@ -72,9 +96,23 @@ export default function DerivativesPage() {
               <h3 className="font-bold text-lg text-blue-800">최근 만기일 (D-Day)</h3>
               <p className="text-sm text-gray-500 mt-1">2026년 7월 둘째 주 위클리 옵션 만기</p>
               <div className="mt-3 flex items-center justify-between text-gray-700 font-medium">
-                <span>양합 (ATM 기준)</span>
-                <span className="text-red-500 text-xl font-bold">4.25</span>
+                {isOptionsLoading ? (
+                  <>
+                    <span>전일 마감 양합 (로딩중)</span>
+                    <span className="text-red-500 text-xl font-bold">...</span>
+                  </>
+                ) : optionsData ? (
+                  <>
+                    <span>전일 마감 양합 (EOD ATM {optionsData.atmPrice} 기준)</span>
+                    <span className="text-red-500 text-xl font-bold">{optionsData.sum.toFixed(2)}</span>
+                  </>
+                ) : (
+                  <span className="text-gray-500 w-full text-center py-2 text-sm bg-gray-50 rounded">데이터를 불러오지 못했습니다. (API 장애 또는 데이터 없음)</span>
+                )}
               </div>
+              {optionsData && optionsData.apiRawStatus && (
+                 <p className="text-xs font-semibold text-blue-500 mt-2 text-right">Data Source: {optionsData.apiRawStatus}</p>
+              )}
             </div>
           </div>
           <div className="relative pl-6">
@@ -98,6 +136,7 @@ export default function DerivativesPage() {
             <div className="h-96 relative">
               <div ref={k2i1Ref} className="absolute inset-0" />
               {isLoadingCharts && <div className="absolute inset-0 bg-gray-100 animate-pulse rounded-md border flex items-center justify-center text-gray-400 z-10">Loading Chart Data...</div>}
+              {!isLoadingCharts && chartErrors.k2i1 && <div className="absolute inset-0 bg-gray-50 flex items-center justify-center text-gray-500 z-10 rounded-md border">차트 데이터를 불러오지 못했습니다.</div>}
             </div>
           </div>
           <div className="border rounded-lg p-4 shadow-sm bg-white">
@@ -105,6 +144,7 @@ export default function DerivativesPage() {
             <div className="h-96 relative">
               <div ref={vkospiRef} className="absolute inset-0" />
               {isLoadingCharts && <div className="absolute inset-0 bg-gray-100 animate-pulse rounded-md border flex items-center justify-center text-gray-400 z-10">Loading Chart Data...</div>}
+              {!isLoadingCharts && chartErrors.vkospi && <div className="absolute inset-0 bg-gray-50 flex items-center justify-center text-gray-500 z-10 rounded-md border">차트 데이터를 불러오지 못했습니다.</div>}
             </div>
           </div>
         </div>

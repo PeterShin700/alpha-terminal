@@ -10,22 +10,17 @@ export async function GET(request: Request) {
   try {
     console.log('Night Market Cron Triggered: Fetching KRX Night Data...');
     
-    // 야간 시장 마감 데이터 모의 생성
-    const mockNightMarketData = {
-      closePrice: 353.80,
-      changePercent: -0.11,
-      volume: 12500,
-      timestamp: new Date().toISOString()
-    };
+    // 야간 시장 마감 데이터 모의 생성 제외 (기능 미구현 상태)
+    const nightMarketData = null;
 
     // 저장소 적재
-    await setMarketData('night_market_summary', mockNightMarketData);
+    await setMarketData('night_market_summary', nightMarketData);
     
     console.log('Successfully collected night market data.');
     return NextResponse.json({ 
       success: true, 
       message: 'KRX Night Market data sync completed.',
-      data: mockNightMarketData
+      data: nightMarketData
     });
   } catch (error) {
     console.error('Failed to sync night market data:', error);
