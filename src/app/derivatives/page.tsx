@@ -52,6 +52,7 @@ export default function DerivativesPage() {
             width: k2i1Ref.current.clientWidth,
             height: 384,
             layout: { background: { color: '#ffffff' }, textColor: '#333' },
+            localization: { dateFormat: 'yyyy-MM-dd' },
           });
           const k2i1Series = k2i1Chart.addLineSeries({ color: '#2563eb', lineWidth: 2 });
           const mappedK2i1Data = k2i1Json.data.map((d: any) => ({ time: d.time, value: d.close || d.value }));
@@ -67,6 +68,7 @@ export default function DerivativesPage() {
             width: vkospiRef.current.clientWidth,
             height: 384,
             layout: { background: { color: '#ffffff' }, textColor: '#333' },
+            localization: { dateFormat: 'yyyy-MM-dd' },
           });
           const vkospiSeries = vkospiChart.addLineSeries({ color: '#9333ea', lineWidth: 2 });
           const mappedVkospiData = vkospiJson.data.map((d: any) => ({ time: d.time, value: d.close || d.value }));

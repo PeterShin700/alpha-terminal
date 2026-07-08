@@ -53,6 +53,7 @@ export default function LiquidityPage() {
             width: ssRef.current.clientWidth,
             height: 320,
             layout: { background: { color: '#ffffff' }, textColor: '#333' },
+            localization: { dateFormat: 'yyyy-MM-dd' },
           });
           const ssSeries = ssChart.addCandlestickSeries();
           ssSeries.setData(ssJson.data);
@@ -72,6 +73,7 @@ export default function LiquidityPage() {
             width: skRef.current.clientWidth,
             height: 320,
             layout: { background: { color: '#ffffff' }, textColor: '#333' },
+            localization: { dateFormat: 'yyyy-MM-dd' },
           });
           const skSeries = skChart.addCandlestickSeries();
           skSeries.setData(skJson.data);

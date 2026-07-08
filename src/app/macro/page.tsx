@@ -36,6 +36,7 @@ export default function MacroPage() {
             width: nqRef.current.clientWidth,
             height: 384,
             layout: { background: { color: '#ffffff' }, textColor: '#333' },
+            localization: { dateFormat: 'yyyy-MM-dd' },
           });
           const nqSeries = nqChart.addCandlestickSeries();
           nqSeries.setData(nqJson.data);
@@ -55,6 +56,7 @@ export default function MacroPage() {
             width: clRef.current.clientWidth,
             height: 384,
             layout: { background: { color: '#ffffff' }, textColor: '#333' },
+            localization: { dateFormat: 'yyyy-MM-dd' },
           });
           const clSeries = clChart.addCandlestickSeries();
           clSeries.setData(clJson.data);
