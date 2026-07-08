@@ -1,4 +1,7 @@
 // src/lib/public-data-api.ts
+import { calculateATMStraddle } from './calculator';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Returns the most recent business day (YYYYMMDD) for EOD data.
@@ -15,6 +18,8 @@ function getBusinessDay(offsetDays: number): string {
   if (d.getDay() === 6) d.setDate(d.getDate() - 1); // Sat -> Fri
   
   const yyyy = d.getFullYear();
+  // 사용자의 요청에 따라 2026년 기준 실시간 데이터를 그대로 사용 (연도 보정 제거)
+  
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}${mm}${dd}`;
@@ -57,23 +62,39 @@ export async function getEodOptionsStraddleSum(): Promise<{ atmStrike: number, s
 
     // Filter KOSPI 200 Options
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const kospi200Options = items.filter((i: any) => i.prdCtg === '파생 옵션 코스피200');
+    const kospi200Weeklies = items.filter((i: any) => i.prdCtg.includes('위클리') && i.prdCtg.includes('코스피200'));
     
-    if (kospi200Options.length === 0) {
+    // 만약 위클리 옵션이 없으면 일반 코스피200 옵션으로 폴백
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const targetOptions = kospi200Weeklies.length > 0 ? kospi200Weeklies : items.filter((i: any) => i.prdCtg === '파생 옵션 코스피200');
+
+    if (targetOptions.length === 0) {
       throw new Error("No KOSPI 200 options found for date " + basDt);
     }
+
+    // 그룹화: 동일 만기일(Expiration) 중 가장 가까운 만기일 찾기
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const expirations = Array.from(new Set(targetOptions.map((opt: any) => opt.itmsNm.split(' ')[2]))).sort();
+    const nearestExpiration = expirations[0]; // 가장 가까운 만기일
+
+    // 해당 만기일의 옵션만 필터링
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const frontMonthOptions = targetOptions.filter((opt: any) => opt.itmsNm.split(' ')[2] === nearestExpiration);
 
     // Group by Strike Price
     const strikeMap = new Map<string, { call: number | null, put: number | null }>();
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    kospi200Options.forEach((opt: any) => {
+    frontMonthOptions.forEach((opt: any) => {
       const nameParts = opt.itmsNm.split(' ');
       const type = nameParts[1]; 
       const strikeStr = nameParts[nameParts.length - 1].replace(/,/g, ''); 
       const strike = parseFloat(strikeStr).toString();
       
       const price = parseFloat(opt.clpr);
+      
+      // 거래가 없어서 가격이 0인 행사가 제외
+      if (price <= 0) return;
       
       if (!strikeMap.has(strike)) {
         strikeMap.set(strike, { call: null, put: null });
@@ -84,30 +105,45 @@ export async function getEodOptionsStraddleSum(): Promise<{ atmStrike: number, s
       if (type === 'P') entry.put = price;
     });
 
-    // Find empirical ATM (where |Call - Put| is minimal)
-    let minDiff = Infinity;
-    let atmStrikeStr = "0";
-    let bestEntry = { call: 0, put: 0 };
+    // Find empirical ATM (where |Call - Put| is minimal) using calculator
+    const result = calculateATMStraddle(strikeMap);
+    
+    if (!result) {
+      throw new Error("Calculator returned null. No valid ATM found.");
+    }
+    
+    if (result.sum <= 0) {
+      throw new Error(`Calculated straddle sum is abnormal: ${result.sum}`);
+    }
 
-    Array.from(strikeMap.entries()).forEach(([strike, prices]) => {
-      if (prices.call !== null && prices.put !== null && prices.call > 0 && prices.put > 0) {
-        const diff = Math.abs(prices.call - prices.put);
-        if (diff < minDiff) {
-          minDiff = diff;
-          atmStrikeStr = strike;
-          bestEntry = { call: prices.call, put: prices.put };
-        }
+    // 로그 파일 저장 로직 (admin/data-logs 페이지용)
+    try {
+      const logFilePath = path.join(process.cwd(), 'data-logs.json');
+      let logs = [];
+      if (fs.existsSync(logFilePath)) {
+        logs = JSON.parse(fs.readFileSync(logFilePath, 'utf8'));
       }
-    });
+      
+      const newLog = {
+        date: basDt,
+        strike: result.atmStrike,
+        call: result.call,
+        put: result.put,
+        sum: result.sum,
+        timestamp: new Date().toISOString()
+      };
+      
+      // 중복 저장 방지 (같은 날짜면 덮어쓰기)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      logs = logs.filter((log: any) => log.date !== basDt);
+      logs.unshift(newLog); // 최신을 맨 앞에
+      
+      fs.writeFileSync(logFilePath, JSON.stringify(logs, null, 2));
+    } catch (logErr) {
+      console.error("Failed to write data-logs.json:", logErr);
+    }
 
-    const sum = Number((bestEntry.call + bestEntry.put).toFixed(2));
-    return {
-      atmStrike: parseFloat(atmStrikeStr),
-      call: bestEntry.call,
-      put: bestEntry.put,
-      sum: sum,
-      isMock: false
-    };
+    return result;
 
   } catch (e) {
     console.error("Public Data API Error:", e);
