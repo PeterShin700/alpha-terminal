@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { getMarketData } from '@/lib/data-store';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const logFilePath = path.join(process.cwd(), 'data-logs.json');
-    if (!fs.existsSync(logFilePath)) {
-      return NextResponse.json([]);
-    }
-    const logs = JSON.parse(fs.readFileSync(logFilePath, 'utf8'));
+    const logs = await getMarketData('straddle_logs') || [];
     return NextResponse.json(logs);
   } catch (error) {
     console.error("Failed to read logs:", error);

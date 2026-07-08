@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getMarketData } from '@/lib/data-store';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const liquidityData = await getMarketData('liquidity_day');

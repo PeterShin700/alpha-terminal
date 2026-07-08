@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
+import Link from 'next/link';
+import { AuthProvider } from "@/contexts/AuthContext";
+import ClientAuthStatus from "@/components/ClientAuthStatus";
+import HeaderNav from "@/components/HeaderNav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,20 +27,22 @@ export default function RootLayout({
           [유사투자자문업 고지] 본 서비스는 유사투자자문업자로서 일대일 개별 투자 상담은 불가능하며, 파생상품 거래 결과와 손실은 투자자 본인에게 귀속된다.
         </div>
         
-        {/* 네비게이션 헤더 */}
-        <header className="sticky top-0 z-40 border-b bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="font-bold text-xl text-blue-900">Alpha Terminal</div>
-          <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm md:text-base">
-            <a href="/briefing" className="hover:text-blue-600 font-medium">마켓 브리핑</a>
-            <a href="/derivatives" className="hover:text-blue-600 font-medium">파생분석 센터</a>
-            <a href="/macro" className="hover:text-blue-600 font-medium">글로벌 매크로</a>
-            <a href="/liquidity" className="hover:text-blue-600 font-medium">대형 현물 수급</a>
-          </nav>
-        </header>
+        <AuthProvider>
+          {/* 네비게이션 헤더 */}
+          <header className="sticky top-0 z-40 border-b bg-gray-50/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/80 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <Link href="/" className="font-bold text-xl text-blue-900">Alpha Terminal</Link>
+            <nav className="flex flex-wrap justify-center gap-x-2 gap-y-2 text-sm md:text-base items-center">
+              <HeaderNav />
+              <div className="ml-4 border-l pl-4">
+                <ClientAuthStatus />
+              </div>
+            </nav>
+          </header>
 
-        <main className="min-h-screen bg-white">
-          {children}
-        </main>
+          <main className="min-h-screen bg-white">
+            {children}
+          </main>
+        </AuthProvider>
 
         <footer className="bg-[#111827] text-white py-8 border-t border-gray-800">
           <div className="max-w-6xl mx-auto px-4 text-center space-y-4">

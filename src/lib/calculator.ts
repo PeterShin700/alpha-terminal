@@ -16,7 +16,7 @@ export type StraddleResult = {
  * 주어진 행사가별 콜/풋 가격 맵에서 ATM(등가격) 행사가를 찾아 양합을 계산합니다.
  * ATM은 콜 가격과 풋 가격의 차이의 절댓값(Math.abs)이 가장 작은 행사가로 정의합니다.
  */
-export function calculateATMStraddle(strikeMap: Map<string, { call: number | null, put: number | null }>): StraddleResult | null {
+export function calculateATMStraddle(strikeMap: Map<string, { call: number | null, put: number | null, itmsNm?: string, prdCtg?: string }>): StraddleResult | null {
   let minDiff = Infinity;
   let atmStrikeStr = "0";
   let bestEntry = { call: 0, put: 0 };

@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import DataTable from '@/components/DataTable';
 
 export default function DerivativesPage() {
   const k2i1Ref = useRef<HTMLDivElement>(null);
@@ -124,11 +125,27 @@ export default function DerivativesPage() {
               <p className="text-sm text-gray-500 mt-1">감마 리스크 프리미엄 축소 진행 중</p>
               <div className="mt-3 flex items-center justify-between text-gray-700">
                 <span>프리미엄 붕괴 예측</span>
-                <span className="text-gray-500 text-lg font-bold">~ 20% 감소</span>
+                <span className="text-gray-500 text-lg font-bold">
+                  {optionsData && optionsData.items 
+                    ? (optionsData.items.find((item: any) => item.isATM)?.d1Variance || 'N/A') 
+                    : 'N/A'}
+                </span>
               </div>
             </div>
           </div>
         </div>
+      </section>
+
+      {/* 옵션 체인 데이터 표 섹션 */}
+      <section>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">상세 옵션 체인 (Option Chain)</h2>
+        {optionsData && optionsData.items && optionsData.items.length > 0 ? (
+          <DataTable data={optionsData.items} showRawDataToggle={false} />
+        ) : (
+          <div className="text-gray-500 py-4 text-center border rounded-lg bg-gray-50">
+            옵션 체인 데이터를 불러오는 중이거나 데이터가 없습니다.
+          </div>
+        )}
       </section>
 
       <section>

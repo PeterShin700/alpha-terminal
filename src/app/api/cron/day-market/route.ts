@@ -43,6 +43,7 @@ export async function GET(request: Request) {
           callPremium: eodData.call,
           putPremium: eodData.put,
           sum: eodData.sum,
+          items: eodData.items,
           timestamp: new Date().toISOString(),
           apiRawStatus: "Public Data API (EOD)"
         };
