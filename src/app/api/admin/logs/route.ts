@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const logs = await getMarketData('straddle_logs') || [];
+    const logs = await getMarketData('option_chains') || [];
     return NextResponse.json(logs);
   } catch (error) {
     console.error("Failed to read logs:", error);
