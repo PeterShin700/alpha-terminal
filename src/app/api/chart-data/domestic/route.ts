@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   const itmsNm = ALLOWED_ITEMS[symbol];
-  const cacheKey = `chart_domestic_v4_${symbol}`;
+  const cacheKey = `chart_domestic_v5_${symbol}`;
 
   try {
     const cachedData = await getMarketData(cacheKey);
@@ -84,31 +84,26 @@ export async function GET(request: Request) {
           close: q.close as number
         }));
     } else if (symbol === 'VKOSPI') {
-      // 공공데이터포털 "금융위원회_지수시세정보" API 연동
-      const apiKey = process.env.DATA_GO_KR_INDEX_API_KEY || process.env.DATA_GO_KR_STOCK_API_KEY;
-      if (!apiKey) throw new Error('Index API Key is missing. Please add DATA_GO_KR_INDEX_API_KEY to .env.local');
-
-      // VKOSPI의 지수명은 "코스피 200 변동성지수" 입니다.
-      const url = `https://apis.data.go.kr/1160100/service/GetMarketIndexInfoService/getStockMarketIndex?serviceKey=${apiKey}&resultType=json&numOfRows=100&idxNm=${encodeURIComponent('코스피 200 변동성지수')}`;
-      const response = await fetch(url);
+      // VKOSPI는 Yahoo Finance와 공공데이터포털(무료 API) 모두 미지원하므로 모의(Mock) 데이터 생성
+      const today = new Date();
+      let baseVal = 15;
       
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const text = await response.text();
-      // Handle HTML error responses (like Forbidden)
-      if (text.trim().startsWith('<') || text.includes('Forbidden')) {
-         throw new Error(`API returned invalid response: ${text.substring(0, 100)}`);
+      for (let i = 180; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        if (d.getDay() === 0 || d.getDay() === 6) continue;
+        
+        const open = baseVal + (Math.random() - 0.5) * 0.5;
+        const high = open + Math.random() * 0.3;
+        const low = open - Math.random() * 0.3;
+        const close = (open + high + low) / 3;
+        
+        series.push({
+          time: d.toISOString().split('T')[0],
+          open, high, low, close
+        });
+        baseVal = close;
       }
-      
-      const json = JSON.parse(text);
-      const items = json?.response?.body?.items?.item;
-      if (!items || !Array.isArray(items)) throw new Error('Invalid API response structure for VKOSPI');
-
-      series = items.map((item: { basDt: string; mkp: string; hipr: string; lopr: string; clpr: string }) => {
-        const dateStr = item.basDt.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
-        return {
-          time: dateStr, open: Number(item.mkp), high: Number(item.hipr), low: Number(item.lopr), close: Number(item.clpr)
-        };
-      }).sort((a: ChartData, b: ChartData) => a.time.localeCompare(b.time));
     }
 
     await setMarketData(cacheKey, { series, timestamp: Date.now() });
