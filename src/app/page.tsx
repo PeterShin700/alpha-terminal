@@ -1,4 +1,4 @@
-import AdminHeroButton from '@/components/AdminHeroButton';
+
 
 export default function Home() {
   return (
@@ -11,12 +11,6 @@ export default function Home() {
           철저한 분석과 객관적인 데이터를 통해 글로벌 파생상품 시장의 흐름을 읽습니다. 
           과장된 수익률 약속 없이, 오직 정제된 정보만을 단방향으로 제공합니다.
         </p>
-        <div className="pt-4 flex flex-col items-center gap-4">
-          <a href="/market" className="bg-blue-600 text-white px-8 py-3 rounded-md font-bold text-lg hover:bg-blue-700 transition">
-            시황 분석 바로가기
-          </a>
-          <AdminHeroButton />
-        </div>
       </section>
 
       <section className="grid md:grid-cols-3 gap-8 pt-12 text-left">
