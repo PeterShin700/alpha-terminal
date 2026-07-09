@@ -4,11 +4,26 @@ import { kv } from '@vercel/kv';
 
 const CACHE_FILE = path.join(process.cwd(), 'data-cache.json');
 
+let redisClient: any = null;
+function getRedisClient() {
+  if (!redisClient && process.env.REDIS_URL) {
+    const Redis = require('ioredis');
+    redisClient = new Redis(process.env.REDIS_URL);
+  }
+  return redisClient;
+}
+
 /**
  * 환경에 따라 Vercel KV 또는 로컬 JSON 파일 시스템에 데이터를 저장하고 불러오는 어댑터
  */
 export async function getMarketData(key: string) {
   try {
+    const redis = getRedisClient();
+    if (redis) {
+      const data = await redis.get(key);
+      return data ? JSON.parse(data) : null;
+    }
+
     // KV_REST_API_URL이나 UPSTASH_REDIS_REST_URL이 존재하면 Vercel KV(Upstash) 사용
     if (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) {
       const data = await kv.get(key);
@@ -30,6 +45,12 @@ export async function getMarketData(key: string) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function setMarketData(key: string, value: any) {
   try {
+    const redis = getRedisClient();
+    if (redis) {
+      await redis.set(key, JSON.stringify(value));
+      return;
+    }
+
     if (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) {
       await kv.set(key, value);
       return;
