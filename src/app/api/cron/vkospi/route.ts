@@ -111,6 +111,11 @@ class RedisAdapter {
     return kv.lpop(key);
   }
 
+  async lrange(key: string, start: number, stop: number) {
+    if (this.redis) return this.redis.lrange(key, start, stop);
+    return kv.lrange(key, start, stop);
+  }
+
   disconnect() {
     if (this.redis) this.redis.disconnect();
   }
@@ -154,20 +159,58 @@ export async function GET(request: Request) {
       adapter.disconnect();
       return NextResponse.json({ message: 'Initialized successfully', count: results.length, data: results });
     } else {
-      const today = new Date();
-      const targetDate = formatDate(today);
+      // 현재 KST 시각 기준
+      const now = new Date();
+      const kstTime = now.getTime() + (9 * 60 * 60 * 1000);
+      const todayKst = new Date(kstTime);
       
-      const item = await fetchVkospiData(targetDate);
+      let item = null;
+      let targetDate = '';
+
+      // 당일부터 과거 5일까지 거슬러 올라가며 가장 최신의 유효한 데이터를 찾음
+      for (let offset = 0; offset <= 5; offset++) {
+        const d = new Date(todayKst);
+        d.setDate(d.getDate() - offset);
+        
+        // 주말 건너뛰기
+        if (d.getDay() === 0) d.setDate(d.getDate() - 2);
+        if (d.getDay() === 6) d.setDate(d.getDate() - 1);
+
+        targetDate = formatDate(d);
+        item = await fetchVkospiData(targetDate);
+        if (item) {
+          break; // 데이터를 찾으면 루프 종료
+        }
+      }
+      
       if (!item) {
         adapter.disconnect();
-        return NextResponse.json({ message: 'No valid data for today (might be weekend or holiday). Skipping.' });
+        return NextResponse.json({ message: '최근 5일간 유효한 데이터를 찾을 수 없습니다.' });
+      }
+
+      // 이미 저장된 데이터인지 확인하기 위해 마지막 아이템을 체크
+      const currentLength = await adapter.llen(KV_KEY);
+      if (currentLength > 0) {
+         const lastItemArr = await adapter.lrange(KV_KEY, -1, -1);
+         if (lastItemArr && lastItemArr.length > 0) {
+           try {
+             // Upstash는 객체를 반환할 수 있고 ioredis는 문자열을 반환할 수 있음
+             const lastItemStr = typeof lastItemArr[0] === 'string' ? lastItemArr[0] : JSON.stringify(lastItemArr[0]);
+             const lastItem = JSON.parse(lastItemStr);
+             if (lastItem.date === targetDate) {
+               adapter.disconnect();
+               return NextResponse.json({ message: '이미 오늘자 데이터가 저장되어 있습니다.', data: item });
+             }
+           } catch (e) {
+             console.error("Failed to parse last item", e);
+           }
+         }
       }
 
       await adapter.rpush(KV_KEY, [JSON.stringify(item)]);
       
-      const currentLength = await adapter.llen(KV_KEY);
-      if (currentLength > MAX_DAYS) {
-        const exceedCount = currentLength - MAX_DAYS;
+      if (currentLength + 1 > MAX_DAYS) {
+        const exceedCount = (currentLength + 1) - MAX_DAYS;
         for (let i = 0; i < exceedCount; i++) {
           await adapter.lpop(KV_KEY);
         }
