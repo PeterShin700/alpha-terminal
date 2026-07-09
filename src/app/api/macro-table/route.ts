@@ -5,6 +5,8 @@ import AdmZip from 'adm-zip';
 import { parse } from 'csv-parse/sync';
 
 // Let's use robust import based on what worked in global/route.ts
+import YahooFinance from 'yahoo-finance2';
+const yahooFinance = new YahooFinance();
 
 // Fallback data in case CFTC or Yahoo fails
 const FALLBACK_DATA = [
@@ -85,14 +87,7 @@ export async function GET() {
       return NextResponse.json({ success: true, data: cachedData, cached: true });
     }
 
-    // Initialize YahooFinance
-    let yahooFinance;
-    try {
-        const yfModule = require('yahoo-finance2');
-        yahooFinance = yfModule.YahooFinance ? new yfModule.YahooFinance() : yfModule.default || yfModule;
-    } catch(e) {
-        console.error("Yahoo finance init error", e);
-    }
+    // Import handled at top of file, so we just use yahooFinance directly.
 
     const currentYear = new Date().getFullYear();
     const urlFin = `https://www.cftc.gov/files/dea/history/fut_fin_txt_${currentYear}.zip`;
@@ -105,7 +100,8 @@ export async function GET() {
     ]);
 
     // Fetch Yahoo Quotes
-    let nqQuote, wtiQuote;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let nqQuote: any, wtiQuote: any;
     if (yahooFinance && typeof yahooFinance.quote === 'function') {
         try {
             [nqQuote, wtiQuote] = await Promise.all([

@@ -16,7 +16,8 @@ interface ChartData {
   close: number;
 }
 
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
+const yahooFinance = new YahooFinance();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
