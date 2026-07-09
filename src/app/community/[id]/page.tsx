@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -8,9 +8,8 @@ import {
 } from '@/lib/community-api';
 import type { Post, Comment } from '@/types/community';
 
-export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const postId = resolvedParams.id;
+export default function PostDetailPage({ params }: { params: { id: string } }) {
+  const postId = params.id;
   const router = useRouter();
   const { user } = useAuth();
   
