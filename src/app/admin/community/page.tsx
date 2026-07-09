@@ -24,7 +24,7 @@ export default function AdminCommunityPage() {
         const error = await res.json();
         alert(`생성 실패: ${error.error}`);
       }
-    } catch (e) {
+    } catch {
       alert('오류가 발생했습니다.');
     } finally {
       setIsGenerating(false);
@@ -48,7 +48,7 @@ export default function AdminCommunityPage() {
         const error = await res.json();
         alert(`삭제 실패: ${error.error}`);
       }
-    } catch (e) {
+    } catch {
       alert('오류가 발생했습니다.');
     } finally {
       setIsDeleting(false);

@@ -19,7 +19,7 @@ async function verifyAdmin(request: Request) {
     }
 
     return { user: decodedToken };
-  } catch (error) {
+  } catch {
     return { error: 'Invalid token', status: 401 };
   }
 }
