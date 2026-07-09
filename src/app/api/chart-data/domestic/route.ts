@@ -69,8 +69,10 @@ export async function GET(request: Request) {
       }
 
       series = result.quotes
-        .filter(q => q.open !== null && q.high !== null && q.low !== null && q.close !== null)
-        .map(q => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((q: any) => q.open !== null && q.high !== null && q.low !== null && q.close !== null)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((q: any) => ({
           time: q.date.toISOString().split('T')[0],
           open: q.open as number,
           high: q.high as number,
