@@ -20,26 +20,27 @@ export async function GET() {
     const rawData = await getLrange();
     
     if (!rawData || rawData.length === 0) {
-      return NextResponse.json({ data: [] });
+      return NextResponse.json({ success: true, data: [] });
     }
 
     const chartData = rawData.map((item: unknown) => {
       const parsed = typeof item === 'string' ? JSON.parse(item) : (item as Record<string, unknown>);
       let displayDate = parsed.date as string | undefined;
+      // Convert 'YYYYMMDD' to 'YYYY-MM-DD' for Lightweight Charts
       if (displayDate && displayDate.length === 8) {
-        displayDate = `${displayDate.slice(4, 6)}/${displayDate.slice(6, 8)}`;
+        displayDate = `${displayDate.slice(0, 4)}-${displayDate.slice(4, 6)}-${displayDate.slice(6, 8)}`;
       }
 
       return {
-        date: displayDate,
+        time: displayDate, // Lightweight Charts requires 'time' field
         value: parsed.value || 0,
       };
     });
 
-    return NextResponse.json({ data: chartData });
+    return NextResponse.json({ success: true, data: chartData });
   } catch (error: unknown) {
     console.error('VKOSPI Chart API Error:', error);
     const msg = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

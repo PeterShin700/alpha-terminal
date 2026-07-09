@@ -37,7 +37,7 @@ export default function DerivativesPage() {
       try {
         const [k2i1Res, vkospiRes] = await Promise.all([
           fetch('/api/chart-data/domestic?symbol=K2I1'),
-          fetch('/api/chart-data/domestic?symbol=VKOSPI')
+          fetch('/api/chart/vkospi') // Use the dedicated KV-based endpoint for VKOSPI
         ]);
         
         const k2i1Json = await k2i1Res.json();
