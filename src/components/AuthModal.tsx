@@ -16,7 +16,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'verify'>('login');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +45,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const handleToggleMode = () => {
     setMode(mode === 'login' ? 'signup' : 'login');
     resetForm();
+  };
+
+  const getMailProviderUrl = (email: string) => {
+    if (email.endsWith('@gmail.com')) return 'https://mail.google.com/';
+    if (email.endsWith('@naver.com')) return 'https://mail.naver.com/';
+    if (email.endsWith('@daum.net') || email.endsWith('@hanmail.net')) return 'https://mail.daum.net/';
+    if (email.endsWith('@kakao.com')) return 'https://mail.kakao.com/';
+    return null;
   };
 
   const handleGoogleAuth = async () => {
@@ -91,10 +99,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         // 인증 유도를 위해 즉시 로그아웃 처리
         await auth.signOut();
 
-        alert('회원가입이 완료되었습니다. 이메일함에서 인증 링크를 클릭하신 후 로그인해주세요.');
-        setMode('login');
-        resetForm();
-
+        // 인증 확인 모달 띄우기
+        setMode('verify');
       } else {
         // 로그인
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -138,116 +144,157 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </button>
 
         <div className="p-8">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">
-            {mode === 'login' ? '로그인' : '회원가입'}
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
-                <input 
-                  type="text" 
-                  value={nickname}
-                  onChange={e => setNickname(e.target.value)}
-                  placeholder="커뮤니티에서 사용할 이름"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
+          {mode === 'verify' ? (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
               </div>
-            )}
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                이메일 인증을 확인해주세요
+              </h2>
+              <p className="text-gray-600 mb-8 leading-relaxed">
+                <span className="font-bold text-gray-900">{email}</span>(으)로<br />
+                인증 메일을 발송했습니다.<br />
+                메일함에서 인증 링크를 클릭하셔야 가입이 완료됩니다.
+              </p>
+              
+              {getMailProviderUrl(email) ? (
+                <a 
+                  href={getMailProviderUrl(email)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex justify-center items-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors mb-3"
+                >
+                  내 메일함으로 바로가기
+                </a>
+              ) : null}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-              <input 
-                type="email" 
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
+              <button 
+                onClick={() => {
+                  setMode('login');
+                  resetForm();
+                }}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-4 rounded-lg transition-colors"
+              >
+                로그인 화면으로 돌아가기
+              </button>
             </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">
+                {mode === 'login' ? '로그인' : '회원가입'}
+              </h2>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="6자리 이상"
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-            </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {mode === 'signup' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                    <input 
+                      type="text" 
+                      value={nickname}
+                      onChange={e => setNickname(e.target.value)}
+                      placeholder="커뮤니티에서 사용할 이름"
+                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                )}
 
-            {mode === 'signup' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호 확인</label>
-                <input 
-                  type="password" 
-                  value={passwordConfirm}
-                  onChange={e => setPasswordConfirm(e.target.value)}
-                  placeholder="비밀번호 다시 입력"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-            )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
 
-            {error && <div className="text-red-500 text-sm font-medium">{error}</div>}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
+                  <input 
+                    type="password" 
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="6자리 이상"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
 
-            <button 
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {loading ? '처리 중...' : (mode === 'login' ? '이메일로 로그인' : '이메일로 가입하기')}
-            </button>
-          </form>
+                {mode === 'signup' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호 확인</label>
+                    <input 
+                      type="password" 
+                      value={passwordConfirm}
+                      onChange={e => setPasswordConfirm(e.target.value)}
+                      placeholder="비밀번호 다시 입력"
+                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                )}
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">또는</span>
-              </div>
-            </div>
+                {error && <div className="text-red-500 text-sm font-medium">{error}</div>}
 
-            <button 
-              onClick={handleGoogleAuth}
-              disabled={loading}
-              className="mt-6 w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              {mode === 'login' ? 'Google 계정으로 로그인' : 'Google 계정으로 3초 만에 가입하기'}
-            </button>
-          </div>
-
-          <div className="mt-8 text-center text-sm text-gray-600">
-            {mode === 'login' ? (
-              <>
-                아직 계정이 없으신가요?{' '}
-                <button onClick={handleToggleMode} className="text-blue-600 font-bold hover:underline">
-                  회원가입하기
+                <button 
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {loading ? '처리 중...' : (mode === 'login' ? '이메일로 로그인' : '이메일로 가입하기')}
                 </button>
-              </>
-            ) : (
-              <>
-                이미 계정이 있으신가요?{' '}
-                <button onClick={handleToggleMode} className="text-blue-600 font-bold hover:underline">
-                  로그인하기
+              </form>
+
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">또는</span>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleGoogleAuth}
+                  disabled={loading}
+                  className="mt-6 w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  {mode === 'login' ? 'Google 계정으로 로그인' : 'Google 계정으로 3초 만에 가입하기'}
                 </button>
-              </>
-            )}
-          </div>
+              </div>
+
+              <div className="mt-8 text-center text-sm text-gray-600">
+                {mode === 'login' ? (
+                  <>
+                    아직 계정이 없으신가요?{' '}
+                    <button onClick={handleToggleMode} className="text-blue-600 font-bold hover:underline">
+                      회원가입하기
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    이미 계정이 있으신가요?{' '}
+                    <button onClick={handleToggleMode} className="text-blue-600 font-bold hover:underline">
+                      로그인하기
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
