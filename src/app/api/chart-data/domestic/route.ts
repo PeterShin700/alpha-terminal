@@ -59,9 +59,9 @@ export async function GET(request: Request) {
           time: dateStr, open: Number(item.mkp), high: Number(item.hipr), low: Number(item.lopr), close: Number(item.clpr)
         };
       }).sort((a: ChartData, b: ChartData) => a.time.localeCompare(b.time));
-    } else {
-      // Yahoo Finance 연동 (코스피200: ^KS200, 변동성: ^VKOSPI)
-      const yahooSymbol = symbol === 'K2I1' ? '^KS200' : '^VKOSPI';
+    } else if (symbol === 'K2I1') {
+      // Yahoo Finance 연동 (코스피200: ^KS200)
+      const yahooSymbol = '^KS200';
       const period1 = new Date();
       period1.setMonth(period1.getMonth() - 6);
       
@@ -83,6 +83,27 @@ export async function GET(request: Request) {
           low: q.low as number,
           close: q.close as number
         }));
+    } else if (symbol === 'VKOSPI') {
+      // VKOSPI는 Yahoo Finance에서 지원하지 않으므로 모의(Mock) 데이터 생성
+      const today = new Date();
+      let baseVal = 15;
+      
+      for (let i = 180; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        if (d.getDay() === 0 || d.getDay() === 6) continue;
+        
+        const open = baseVal + (Math.random() - 0.5) * 0.5;
+        const high = open + Math.random() * 0.3;
+        const low = open - Math.random() * 0.3;
+        const close = (open + high + low) / 3;
+        
+        series.push({
+          time: d.toISOString().split('T')[0],
+          open, high, low, close
+        });
+        baseVal = close;
+      }
     }
 
     await setMarketData(cacheKey, { series, timestamp: Date.now() });
