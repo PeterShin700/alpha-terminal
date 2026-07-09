@@ -4,9 +4,11 @@ import { kv } from '@vercel/kv';
 
 const CACHE_FILE = path.join(process.cwd(), 'data-cache.json');
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let redisClient: any = null;
 function getRedisClient() {
   if (!redisClient && process.env.REDIS_URL) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Redis = require('ioredis');
     redisClient = new Redis(process.env.REDIS_URL);
   }
