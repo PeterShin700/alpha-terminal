@@ -84,26 +84,7 @@ export async function GET(request: Request) {
           close: q.close as number
         }));
     } else if (symbol === 'VKOSPI') {
-      // VKOSPI는 Yahoo Finance와 공공데이터포털(무료 API) 모두 미지원하므로 모의(Mock) 데이터 생성
-      const today = new Date();
-      let baseVal = 15;
-      
-      for (let i = 180; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        if (d.getDay() === 0 || d.getDay() === 6) continue;
-        
-        const open = baseVal + (Math.random() - 0.5) * 0.5;
-        const high = open + Math.random() * 0.3;
-        const low = open - Math.random() * 0.3;
-        const close = (open + high + low) / 3;
-        
-        series.push({
-          time: d.toISOString().split('T')[0],
-          open, high, low, close
-        });
-        baseVal = close;
-      }
+      throw new Error('VKOSPI 데이터는 현재 지원되지 않는 지표입니다. (증권사 API 연동 대기중)');
     }
 
     await setMarketData(cacheKey, { series, timestamp: Date.now() });
