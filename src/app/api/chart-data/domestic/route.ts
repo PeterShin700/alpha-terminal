@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   const itmsNm = ALLOWED_ITEMS[symbol];
-  const cacheKey = `chart_domestic_v2_${symbol}`;
+  const cacheKey = `chart_domestic_v3_${symbol}`;
 
   try {
     const cachedData = await getMarketData(cacheKey);
@@ -62,8 +62,11 @@ export async function GET(request: Request) {
     } else {
       // Yahoo Finance 연동 (코스피200: ^KS200, 변동성: ^VKOSPI)
       const yahooSymbol = symbol === 'K2I1' ? '^KS200' : '^VKOSPI';
+      const period1 = new Date();
+      period1.setMonth(period1.getMonth() - 6);
+      
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: any = await yahooFinance.chart(yahooSymbol, { period1: '6mo', interval: '1d' });
+      const result: any = await yahooFinance.chart(yahooSymbol, { period1, interval: '1d' });
       
       if (!result || !result.quotes || result.quotes.length === 0) {
         throw new Error('Yahoo Finance returned no data');
