@@ -50,7 +50,8 @@ async function fetchVkospiData(targetDate: string) {
 
     for (const item of items) {
       const iptVlty = parseFloat(item.iptVlty);
-      if (!isNaN(iptVlty) && iptVlty > 0) {
+      // 이상치 검증 (Outlier Removal): 100 초과 시 파싱 에러로 간주하여 무시
+      if (!isNaN(iptVlty) && iptVlty > 0 && iptVlty <= 100) {
         sumVlty += iptVlty;
         countVlty++;
       }
@@ -61,6 +62,11 @@ async function fetchVkospiData(targetDate: string) {
     }
 
     const avgIptVlty = parseFloat((sumVlty / countVlty).toFixed(2));
+
+    // 최종 산출된 값에 대해서도 한 번 더 검증
+    if (avgIptVlty > 100) {
+      return null;
+    }
 
     return {
       date: targetDate,
