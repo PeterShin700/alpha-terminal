@@ -9,15 +9,18 @@ import { calculateATMStraddle } from './calculator';
  * Note: Does not account for public holidays dynamically, but sufficient for basic operation.
  */
 function getBusinessDay(offsetDays: number): string {
-  const d = new Date();
+  // Vercel 서버는 기본적으로 UTC를 사용하므로, 한국 시간(KST, UTC+9)으로 명시적 변환
+  const now = new Date();
+  const kstTime = now.getTime() + (9 * 60 * 60 * 1000);
+  const d = new Date(kstTime);
+  
   d.setDate(d.getDate() - offsetDays);
+  
   // 간단히 주말이면 이전 금요일로 이동
   if (d.getDay() === 0) d.setDate(d.getDate() - 2); // Sun -> Fri
   if (d.getDay() === 6) d.setDate(d.getDate() - 1); // Sat -> Fri
   
   const yyyy = d.getFullYear();
-  // 사용자의 요청에 따라 2026년 기준 실시간 데이터를 그대로 사용 (연도 보정 제거)
-  
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}${mm}${dd}`;
@@ -34,8 +37,8 @@ export async function getEodOptionsStraddleSum(): Promise<{ items: import('@/typ
     let items: any[] = [];
     let basDt = '';
     
-    // 최근 1일 전부터 최대 5일 전까지 거슬러 올라가며 데이터 존재 여부 확인 (공공데이터 업데이트 지연 대비)
-    for (let offset = 1; offset <= 5; offset++) {
+    // 최근 당일(0일 전)부터 최대 5일 전까지 거슬러 올라가며 데이터 존재 여부 확인 (공공데이터 업데이트 지연 대비)
+    for (let offset = 0; offset <= 5; offset++) {
       basDt = getBusinessDay(offset);
       // prdCtg 파라미터를 추가하여 코스피200 옵션만 수신
       const url = `https://apis.data.go.kr/1160100/service/GetDerivativeProductInfoService/getOptionsPriceInfo?serviceKey=${apiKey}&resultType=json&numOfRows=10000&pageNo=1&basDt=${basDt}&prdCtg=${encodeURIComponent('파생 옵션 코스피200')}`;
