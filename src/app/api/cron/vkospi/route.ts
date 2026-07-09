@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 
 export const dynamic = 'force-dynamic';
 const KV_KEY = 'vkospi:history';
-const MAX_DAYS = 60;
+const MAX_DAYS = 1095; // 약 3년간 누적 후 슬라이딩 윈도우 적용
 
 // Helper to format date as YYYYMMDD
 const formatDate = (date: Date) => {
