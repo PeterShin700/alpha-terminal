@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
+import { getAdminAuth } from '@/lib/firebase-admin';
 
 async function verifyAdmin(request: Request) {
   const authHeader = request.headers.get('Authorization');
@@ -9,7 +9,7 @@ async function verifyAdmin(request: Request) {
 
   const token = authHeader.split('Bearer ')[1];
   try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const decodedToken = await getAdminAuth().verifyIdToken(token);
     const isRootAdmin = decodedToken.email === process.env.NEXT_PUBLIC_ROOT_ADMIN_EMAIL;
     const isCustomAdmin = decodedToken.admin === true;
 
@@ -35,17 +35,17 @@ export async function PATCH(request: Request, { params }: { params: { uid: strin
     const uid = params.uid;
 
     if (body.action === 'toggle_admin') {
-      const user = await adminAuth.getUser(uid);
+      const user = await getAdminAuth().getUser(uid);
       const isCurrentlyAdmin = user.customClaims?.admin === true;
       
       // Toggle custom claims
-      await adminAuth.setCustomUserClaims(uid, { ...user.customClaims, admin: !isCurrentlyAdmin });
+      await getAdminAuth().setCustomUserClaims(uid, { ...user.customClaims, admin: !isCurrentlyAdmin });
       return NextResponse.json({ success: true, message: `Admin status ${!isCurrentlyAdmin ? 'granted' : 'revoked'}` });
     }
     
     if (body.action === 'toggle_disabled') {
-      const user = await adminAuth.getUser(uid);
-      await adminAuth.updateUser(uid, { disabled: !user.disabled });
+      const user = await getAdminAuth().getUser(uid);
+      await getAdminAuth().updateUser(uid, { disabled: !user.disabled });
       return NextResponse.json({ success: true, message: `Account ${!user.disabled ? 'disabled' : 'enabled'}` });
     }
 
@@ -64,7 +64,7 @@ export async function DELETE(request: Request, { params }: { params: { uid: stri
 
   try {
     const uid = params.uid;
-    await adminAuth.deleteUser(uid);
+    await getAdminAuth().deleteUser(uid);
     return NextResponse.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
+import { getAdminAuth } from '@/lib/firebase-admin';
 import type { UserRecord } from 'firebase-admin/auth';
 
 // Check if user has admin privileges
@@ -11,7 +11,7 @@ async function verifyAdmin(request: Request) {
 
   const token = authHeader.split('Bearer ')[1];
   try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const decodedToken = await getAdminAuth().verifyIdToken(token);
     
     // Check if user is the root admin (from env) or has the custom admin claim
     const isRootAdmin = decodedToken.email === process.env.NEXT_PUBLIC_ROOT_ADMIN_EMAIL;
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
   try {
     // List batch of users, 1000 at a time.
-    const listUsersResult = await adminAuth.listUsers(1000);
+    const listUsersResult = await getAdminAuth().listUsers(1000);
     
     const users = listUsersResult.users.map((userRecord: UserRecord) => ({
       uid: userRecord.uid,
