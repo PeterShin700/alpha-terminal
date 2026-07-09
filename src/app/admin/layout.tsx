@@ -54,6 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: '유저 관리', path: '/admin/users' },
     { name: '데이터 로그', path: '/admin/data-logs' },
     { name: '마켓 브리핑 등록', path: '/admin/market-briefing' },
+    { name: '커뮤니티 관리', path: '/admin/community' },
   ];
 
   return (
