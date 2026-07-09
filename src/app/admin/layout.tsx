@@ -52,7 +52,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: '대시보드 홈', path: '/admin' },
     { name: '유저 관리', path: '/admin/users' },
-    { name: '데이터 로그 & 브리핑', path: '/admin/data-logs' },
+    { name: '데이터 로그', path: '/admin/data-logs' },
+    { name: '마켓 브리핑 등록', path: '/admin/market-briefing' },
   ];
 
   return (
