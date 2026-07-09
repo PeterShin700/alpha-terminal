@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   const itmsNm = ALLOWED_ITEMS[symbol];
-  const cacheKey = `chart_domestic_${symbol}`;
+  const cacheKey = `chart_domestic_v2_${symbol}`;
 
   try {
     const cachedData = await getMarketData(cacheKey);
