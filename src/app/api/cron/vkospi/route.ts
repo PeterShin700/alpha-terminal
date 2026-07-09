@@ -20,8 +20,9 @@ async function fetchVkospiData(targetDate: string) {
     throw new Error('API Key is missing');
   }
 
-  const baseUrl = 'https://apis.data.go.kr/1160100/api/rest/finaStatInfo/getDerivMarketPriceInfo';
-  const url = `${baseUrl}?serviceKey=${apiKey}&resultType=json&basDt=${targetDate}&idxNm=VKOSPI`;
+  // 공공데이터 포털에 VKOSPI 단일 지수 조회 API가 확인되지 않아, 파생상품 옵션 시세의 내재변동성(IV) 평균을 VKOSPI 대용으로 산출합니다.
+  const baseUrl = 'https://apis.data.go.kr/1160100/service/GetDerivativeProductInfoService/getOptionsPriceInfo';
+  const url = `${baseUrl}?serviceKey=${apiKey}&resultType=json&basDt=${targetDate}&numOfRows=100&prdCtg=${encodeURIComponent('파생 옵션 코스피200')}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -43,18 +44,28 @@ async function fetchVkospiData(targetDate: string) {
       return null;
     }
 
-    const item = items[0];
-    const clpr = parseFloat(item.clpr);
-    const iptVlty = parseFloat(item.iptVlty);
+    // 거래가 발생한 옵션들의 내재변동성(iptVlty) 평균을 계산 (0인 값 제외)
+    let sumVlty = 0;
+    let countVlty = 0;
 
-    if (isNaN(clpr) || clpr === 0 || isNaN(iptVlty) || iptVlty === 0) {
+    for (const item of items) {
+      const iptVlty = parseFloat(item.iptVlty);
+      if (!isNaN(iptVlty) && iptVlty > 0) {
+        sumVlty += iptVlty;
+        countVlty++;
+      }
+    }
+
+    if (countVlty === 0) {
       return null;
     }
 
+    const avgIptVlty = parseFloat((sumVlty / countVlty).toFixed(2));
+
     return {
       date: targetDate,
-      value: iptVlty,
-      clpr: clpr
+      value: avgIptVlty,
+      clpr: avgIptVlty
     };
   } finally {
     clearTimeout(timeoutId);
