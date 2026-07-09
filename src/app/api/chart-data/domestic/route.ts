@@ -61,7 +61,8 @@ export async function GET(request: Request) {
     } else {
       // Yahoo Finance 연동 (코스피200: ^KS200, 변동성: ^VKOSPI)
       const yahooSymbol = symbol === 'K2I1' ? '^KS200' : '^VKOSPI';
-      const result = await yahooFinance.chart(yahooSymbol, { period1: '6mo', interval: '1d' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any = await yahooFinance.chart(yahooSymbol, { period1: '6mo', interval: '1d' });
       
       if (!result || !result.quotes || result.quotes.length === 0) {
         throw new Error('Yahoo Finance returned no data');
