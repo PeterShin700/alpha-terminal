@@ -28,8 +28,12 @@ export default function AdminUsersPage() {
           Authorization: `Bearer ${token}`
         }
       });
-      if (!res.ok) throw new Error('Failed to fetch users');
-      const data = await res.json();
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Server error response:', errorText);
+        throw new Error('Failed to fetch users');
+      }
+      const data = JSON.parse(await res.text());
       setUsers(data);
     } catch (error) {
       console.error(error);

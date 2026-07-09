@@ -53,6 +53,16 @@ export async function GET(request: Request) {
     return NextResponse.json(users);
   } catch (error) {
     console.error('Error listing users:', error);
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    const envStatus = {
+      hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+      hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+      hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+      keyLength: process.env.FIREBASE_PRIVATE_KEY?.length || 0,
+    };
+    return NextResponse.json({ 
+      error: 'Failed to fetch users', 
+      details: String(error),
+      envStatus
+    }, { status: 500 });
   }
 }
