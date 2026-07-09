@@ -9,8 +9,8 @@ const CACHE_FILE = path.join(process.cwd(), 'data-cache.json');
  */
 export async function getMarketData(key: string) {
   try {
-    // KV_REST_API_URL이 존재하면 Vercel KV 사용
-    if (process.env.KV_REST_API_URL) {
+    // KV_REST_API_URL이나 UPSTASH_REDIS_REST_URL이 존재하면 Vercel KV(Upstash) 사용
+    if (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) {
       const data = await kv.get(key);
       return data;
     }
@@ -30,7 +30,7 @@ export async function getMarketData(key: string) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function setMarketData(key: string, value: any) {
   try {
-    if (process.env.KV_REST_API_URL) {
+    if (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) {
       await kv.set(key, value);
       return;
     }
