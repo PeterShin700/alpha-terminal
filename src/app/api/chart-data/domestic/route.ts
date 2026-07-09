@@ -16,6 +16,8 @@ interface ChartData {
   close: number;
 }
 
+import yahooFinance from 'yahoo-finance2';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const symbol = searchParams.get('symbol');
@@ -57,30 +59,23 @@ export async function GET(request: Request) {
         };
       }).sort((a: ChartData, b: ChartData) => a.time.localeCompare(b.time));
     } else {
-      // 파생상품(K2I1, VKOSPI) 공공데이터 호출 대체 (모의 6개월 데이터 생성)
-      // 실제 환경에서는 GetDerivativeProductInfoService API 연동
-      const derivativeApiKey = process.env.DATA_GO_KR_DERIVATIVE_API_KEY;
-      if (!derivativeApiKey) throw new Error('Derivative API Key is missing');
-
-      const today = new Date();
-      let baseVal = symbol === 'K2I1' ? 350 : 15;
+      // Yahoo Finance 연동 (코스피200: ^KS200, 변동성: ^VKOSPI)
+      const yahooSymbol = symbol === 'K2I1' ? '^KS200' : '^VKOSPI';
+      const result = await yahooFinance.chart(yahooSymbol, { period1: '6mo', interval: '1d' });
       
-      for (let i = 180; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        if (d.getDay() === 0 || d.getDay() === 6) continue;
-        
-        const open = baseVal + (Math.random() - 0.5) * (symbol === 'K2I1' ? 5 : 0.5);
-        const high = open + Math.random() * (symbol === 'K2I1' ? 3 : 0.3);
-        const low = open - Math.random() * (symbol === 'K2I1' ? 3 : 0.3);
-        const close = (open + high + low) / 3;
-        
-        series.push({
-          time: d.toISOString().split('T')[0],
-          open, high, low, close
-        });
-        baseVal = close;
+      if (!result || !result.quotes || result.quotes.length === 0) {
+        throw new Error('Yahoo Finance returned no data');
       }
+
+      series = result.quotes
+        .filter(q => q.open !== null && q.high !== null && q.low !== null && q.close !== null)
+        .map(q => ({
+          time: q.date.toISOString().split('T')[0],
+          open: q.open as number,
+          high: q.high as number,
+          low: q.low as number,
+          close: q.close as number
+        }));
     }
 
     await setMarketData(cacheKey, { series, timestamp: Date.now() });
