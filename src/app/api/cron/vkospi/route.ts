@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
 
+export const dynamic = 'force-dynamic';
 const KV_KEY = 'vkospi:history';
 const MAX_DAYS = 60;
 
@@ -12,21 +14,17 @@ const formatDate = (date: Date) => {
   return `${y}${m}${d}`;
 };
 
-// Fetch data from Public Data Portal
 async function fetchVkospiData(targetDate: string) {
   const apiKey = process.env.DATA_GO_KR_API_KEY;
   if (!apiKey) {
     throw new Error('DATA_GO_KR_API_KEY is missing');
   }
 
-  // NOTE: This URL might need to be adjusted based on the exact API specification.
-  // We assume the standard Financial Services Commission derivatives market API format.
   const baseUrl = 'https://apis.data.go.kr/1160100/api/rest/finaStatInfo/getDerivMarketPriceInfo';
   const url = `${baseUrl}?serviceKey=${apiKey}&resultType=json&basDt=${targetDate}&idxNm=VKOSPI`;
 
-  // Timeout logic to prevent hanging
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const res = await fetch(url, { 
@@ -39,28 +37,23 @@ async function fetchVkospiData(targetDate: string) {
     }
 
     const data = await res.json();
-    
-    // Extract items from response
-    // Typical structure: data.response.body.items.item
     const items = data?.response?.body?.items?.item || [];
     
     if (items.length === 0) {
-      return null; // No data for this date
+      return null;
     }
 
-    // Assuming we take the first matched item
     const item = items[0];
     const clpr = parseFloat(item.clpr);
     const iptVlty = parseFloat(item.iptVlty);
 
-    // Validate data: if clpr or iptVlty is 0, treat as no trading day
     if (isNaN(clpr) || clpr === 0 || isNaN(iptVlty) || iptVlty === 0) {
       return null;
     }
 
     return {
-      date: targetDate, // YYYYMMDD
-      value: iptVlty, // Use implied volatility for VKOSPI chart
+      date: targetDate,
+      value: iptVlty,
       clpr: clpr
     };
   } finally {
@@ -68,22 +61,56 @@ async function fetchVkospiData(targetDate: string) {
   }
 }
 
+class RedisAdapter {
+  private redis: Redis | null = null;
+  private isUpstash: boolean = false;
+
+  constructor() {
+    if (process.env.REDIS_URL || (process.env.KV_URL && !process.env.KV_REST_API_URL)) {
+      this.redis = new Redis(process.env.REDIS_URL || process.env.KV_URL!);
+      this.isUpstash = false;
+    } else {
+      this.isUpstash = true;
+    }
+  }
+
+  async del(key: string) {
+    if (this.redis) return this.redis.del(key);
+    return kv.del(key);
+  }
+
+  async rpush(key: string, items: string[]) {
+    if (this.redis) return this.redis.rpush(key, ...items);
+    return kv.rpush(key, ...items);
+  }
+
+  async llen(key: string) {
+    if (this.redis) return this.redis.llen(key);
+    return kv.llen(key);
+  }
+
+  async lpop(key: string) {
+    if (this.redis) return this.redis.lpop(key);
+    return kv.lpop(key);
+  }
+
+  disconnect() {
+    if (this.redis) this.redis.disconnect();
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const isInit = searchParams.get('init') === 'true';
+  const adapter = new RedisAdapter();
 
   try {
     if (isInit) {
-      // Initialization: Fetch last 60 days
       const results = [];
       const today = new Date();
-      
-      // We will loop back in time until we successfully get 60 valid trading days
-      // To prevent infinite loops, we cap the search at 120 days backwards
       let daysBack = 0;
       
-      // Clear existing list first
-      await kv.del(KV_KEY);
+      await adapter.del(KV_KEY);
 
       while (results.length < MAX_DAYS && daysBack < 120) {
         const d = new Date(today);
@@ -93,7 +120,6 @@ export async function GET(request: Request) {
         try {
           const item = await fetchVkospiData(targetDate);
           if (item) {
-            // Push to front of our local array so the final list is chronological
             results.unshift(item);
           }
         } catch (err) {
@@ -101,43 +127,40 @@ export async function GET(request: Request) {
         }
         
         daysBack++;
-        // Small delay to avoid API rate limit
         await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      // Bulk insert into KV (Redis)
       if (results.length > 0) {
-        // RPUSH takes multiple arguments
-        await kv.rpush(KV_KEY, ...results.map(r => JSON.stringify(r)));
+        await adapter.rpush(KV_KEY, results.map(r => JSON.stringify(r)));
       }
 
+      adapter.disconnect();
       return NextResponse.json({ message: 'Initialized successfully', count: results.length, data: results });
     } else {
-      // Normal Cron Job: Fetch today's data
       const today = new Date();
       const targetDate = formatDate(today);
       
       const item = await fetchVkospiData(targetDate);
       if (!item) {
+        adapter.disconnect();
         return NextResponse.json({ message: 'No valid data for today (might be weekend or holiday). Skipping.' });
       }
 
-      // Add to Redis list at the end
-      await kv.rpush(KV_KEY, JSON.stringify(item));
+      await adapter.rpush(KV_KEY, [JSON.stringify(item)]);
       
-      // Maintain 60-day window size
-      const currentLength = await kv.llen(KV_KEY);
+      const currentLength = await adapter.llen(KV_KEY);
       if (currentLength > MAX_DAYS) {
-        // Pop the oldest items from the left
         const exceedCount = currentLength - MAX_DAYS;
         for (let i = 0; i < exceedCount; i++) {
-          await kv.lpop(KV_KEY);
+          await adapter.lpop(KV_KEY);
         }
       }
 
+      adapter.disconnect();
       return NextResponse.json({ message: 'Updated successfully', data: item });
     }
   } catch (error: unknown) {
+    adapter.disconnect();
     console.error('VKOSPI Cron Error:', error);
     const msg = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json({ error: msg }, { status: 500 });
