@@ -15,9 +15,9 @@ const formatDate = (date: Date) => {
 };
 
 async function fetchVkospiData(targetDate: string) {
-  const apiKey = process.env.DATA_GO_KR_API_KEY;
+  const apiKey = process.env.DATA_GO_KR_DERIVATIVE_API_KEY || process.env.DATA_GO_KR_API_KEY;
   if (!apiKey) {
-    throw new Error('DATA_GO_KR_API_KEY is missing');
+    throw new Error('API Key is missing');
   }
 
   const baseUrl = 'https://apis.data.go.kr/1160100/api/rest/finaStatInfo/getDerivMarketPriceInfo';
