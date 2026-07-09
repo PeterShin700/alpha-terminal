@@ -21,7 +21,11 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 // Initialize Firestore
 const db = getFirestore(app);
 
+// Initialize Auth
+import { getAuth } from "firebase/auth";
+const auth = getAuth(app);
+
 // Analytics는 브라우저 환경에서만 동작하므로 필요할 때 클라이언트에서 동적으로 초기화하는 것이 좋습니다.
 // export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
-export { app, db };
+export { app, db, auth };

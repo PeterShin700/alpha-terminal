@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase-admin';
+import type { UserRecord } from 'firebase-admin/auth';
 
 // Check if user has admin privileges
 async function verifyAdmin(request: Request) {
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     // List batch of users, 1000 at a time.
     const listUsersResult = await adminAuth.listUsers(1000);
     
-    const users = listUsersResult.users.map((userRecord) => ({
+    const users = listUsersResult.users.map((userRecord: UserRecord) => ({
       uid: userRecord.uid,
       email: userRecord.email,
       displayName: userRecord.displayName || '이름 없음',
