@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { logout } from '@/lib/auth';
 import AuthModal from './AuthModal';
@@ -15,9 +16,9 @@ export default function ClientAuthStatus() {
   if (user) {
     return (
       <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-gray-700">
+        <Link href="/mypage" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
           {user.displayName || user.email?.split('@')[0]}님
-        </span>
+        </Link>
         <button
           onClick={logout}
           className="text-sm text-gray-500 hover:text-gray-700"
