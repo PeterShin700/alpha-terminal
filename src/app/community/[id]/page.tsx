@@ -291,9 +291,22 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
             <textarea 
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
-              placeholder={user ? "댓글을 작성해주세요..." : "로그인 후 댓글을 남길 수 있습니다."}
-              disabled={!user}
-              className="flex-1 border p-3 rounded text-sm h-20 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
+              onClick={async () => {
+                if (!user) {
+                  const confirmLogin = confirm('로그인이 필요한 기능입니다. 구글 계정으로 로그인하시겠습니까?');
+                  if (confirmLogin) {
+                    try {
+                      const { loginWithGoogle } = await import('@/lib/auth');
+                      await loginWithGoogle();
+                    } catch (error) {
+                      alert('로그인에 실패했습니다.');
+                    }
+                  }
+                }
+              }}
+              placeholder={user ? "댓글을 작성해주세요..." : "로그인 후 댓글을 남길 수 있습니다. 클릭하여 로그인하세요."}
+              readOnly={!user}
+              className={`flex-1 border p-3 rounded text-sm h-20 focus:ring-1 focus:ring-blue-500 ${!user ? 'cursor-pointer bg-gray-50' : ''}`}
             />
             <button 
               onClick={handleSubmitComment}

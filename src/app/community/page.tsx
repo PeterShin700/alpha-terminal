@@ -47,9 +47,19 @@ export default function CommunityPage() {
       <div className="flex justify-between items-center border-b pb-4 mb-8">
         <h1 className="text-3xl font-extrabold text-gray-900">자유게시판</h1>
         <button 
-          onClick={() => {
+          onClick={async () => {
             if (!user) {
-              alert('로그인이 필요한 기능입니다. 상단 우측의 로그인 버튼을 눌러주세요.');
+              const confirmLogin = confirm('로그인이 필요한 기능입니다. 구글 계정으로 로그인하시겠습니까?');
+              if (confirmLogin) {
+                try {
+                  const { loginWithGoogle } = await import('@/lib/auth');
+                  await loginWithGoogle();
+                  // Automatically open writing area after successful login
+                  setIsWriting(true);
+                } catch (error) {
+                  alert('로그인에 실패했습니다.');
+                }
+              }
               return;
             }
             setIsWriting(!isWriting);
