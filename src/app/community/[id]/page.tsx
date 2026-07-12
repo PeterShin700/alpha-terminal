@@ -84,7 +84,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
         try {
           const { loginWithGoogle } = await import('@/lib/auth');
           currentUser = await loginWithGoogle();
-        } catch (error) {
+        } catch {
           alert('로그인에 실패했습니다.');
           return;
         }

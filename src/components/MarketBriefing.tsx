@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Briefing } from '@/types/briefing';
 import { getBriefings, incrementReaction, addBriefingComment } from '@/lib/briefing-api';
 import { useAuth } from '@/contexts/AuthContext';
-import { auth } from '@/lib/firebase';
+
 
 export default function MarketBriefing() {
   const [briefings, setBriefings] = useState<Briefing[]>([]);

@@ -36,7 +36,7 @@ export default function CommunityPage() {
         try {
           const { loginWithGoogle } = await import('@/lib/auth');
           currentUser = await loginWithGoogle();
-        } catch (error) {
+        } catch {
           alert('로그인에 실패했습니다.');
           return;
         }

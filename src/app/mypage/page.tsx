@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { getUserProfile, updateUserProfile, UserProfile } from '@/lib/user-api';
+import { getUserProfile, updateUserProfile } from '@/lib/user-api';
 import { updateProfile } from 'firebase/auth';
 
 export default function MyPage() {
@@ -92,13 +92,30 @@ export default function MyPage() {
 
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">거주 지역 (선택)</label>
-          <input 
-            type="text" 
+          <select 
             value={region}
             onChange={(e) => setRegion(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            placeholder="예: 서울, 부산, 경기 등"
-          />
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+          >
+            <option value="">선택 안 함</option>
+            <option value="서울">서울특별시</option>
+            <option value="부산">부산광역시</option>
+            <option value="대구">대구광역시</option>
+            <option value="인천">인천광역시</option>
+            <option value="광주">광주광역시</option>
+            <option value="대전">대전광역시</option>
+            <option value="울산">울산광역시</option>
+            <option value="세종">세종특별자치시</option>
+            <option value="경기">경기도</option>
+            <option value="강원">강원특별자치도</option>
+            <option value="충북">충청북도</option>
+            <option value="충남">충청남도</option>
+            <option value="전북">전북특별자치도</option>
+            <option value="전남">전라남도</option>
+            <option value="경북">경상북도</option>
+            <option value="경남">경상남도</option>
+            <option value="제주">제주특별자치도</option>
+          </select>
         </div>
 
         <div>
