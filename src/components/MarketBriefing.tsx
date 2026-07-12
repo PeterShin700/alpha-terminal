@@ -1,12 +1,31 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Briefing } from '@/types/briefing';
-import { getBriefings, incrementReaction } from '@/lib/briefing-api';
+import { getBriefings, incrementReaction, addBriefingComment } from '@/lib/briefing-api';
+import { useAuth } from '@/contexts/AuthContext';
+import { auth } from '@/lib/firebase';
 
 export default function MarketBriefing() {
   const [briefings, setBriefings] = useState<Briefing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userReactions, setUserReactions] = useState<Record<string, 'likes' | 'dislikes'>>({});
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [submittingComment, setSubmittingComment] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      const isRootAdmin = user.email === process.env.NEXT_PUBLIC_ROOT_ADMIN_EMAIL;
+      const token = await user.getIdTokenResult();
+      setIsAdmin(isRootAdmin || !!token.claims.admin);
+    }
+    checkAdmin();
+  }, [user]);
 
   useEffect(() => {
     async function fetchLatest() {
@@ -28,6 +47,25 @@ export default function MarketBriefing() {
     }
     fetchLatest();
   }, []);
+
+  const submitAdminComment = async (briefingId: string | undefined) => {
+    if (!briefingId || !user) return;
+    const content = commentInputs[briefingId]?.trim();
+    if (!content) return;
+
+    setSubmittingComment(briefingId);
+    const success = await addBriefingComment(briefingId, content, user.displayName || '관리자');
+    
+    if (success) {
+      setCommentInputs(prev => ({ ...prev, [briefingId]: '' }));
+      // Reload briefings to show new comment
+      const data = await getBriefings(10);
+      setBriefings(data);
+    } else {
+      alert('댓글 등록에 실패했습니다.');
+    }
+    setSubmittingComment(null);
+  };
 
   const handleReaction = async (id: string | undefined, type: 'likes' | 'dislikes') => {
     if (!id || userReactions[id]) return;
@@ -85,7 +123,7 @@ export default function MarketBriefing() {
             {briefing.content}
           </p>
 
-          <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-4 pt-4 border-t border-gray-100 mb-4">
             <button
               onClick={() => handleReaction(briefing.id, 'likes')}
               disabled={!!(briefing.id && userReactions[briefing.id])}
@@ -111,6 +149,45 @@ export default function MarketBriefing() {
               <span>{briefing.dislikes}</span>
             </button>
           </div>
+
+          {/* Admin Comments Section */}
+          {(briefing.adminComments && briefing.adminComments.length > 0) && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 space-y-3">
+              <h4 className="text-sm font-bold text-gray-700 border-b pb-2 mb-2">관리자 코멘트</h4>
+              {briefing.adminComments.map(comment => (
+                <div key={comment.id} className="text-sm text-gray-800">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-blue-700">{comment.authorName}</span>
+                    <span className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
+                  </div>
+                  <p className="whitespace-pre-wrap pl-1">{comment.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Admin Comment Input */}
+          {isAdmin && briefing.id && (
+            <div className="flex gap-2 mt-4">
+              <input
+                type="text"
+                placeholder="최고 관리자 전용 코멘트 입력..."
+                value={commentInputs[briefing.id] || ''}
+                onChange={e => setCommentInputs(prev => ({ ...prev, [briefing.id as string]: e.target.value }))}
+                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') submitAdminComment(briefing.id);
+                }}
+              />
+              <button
+                onClick={() => submitAdminComment(briefing.id)}
+                disabled={submittingComment === briefing.id || !(commentInputs[briefing.id]?.trim())}
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700 disabled:opacity-50"
+              >
+                {submittingComment === briefing.id ? '등록중...' : '등록'}
+              </button>
+            </div>
+          )}
         </div>
       ))}
     </div>

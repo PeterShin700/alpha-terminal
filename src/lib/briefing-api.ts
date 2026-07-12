@@ -73,3 +73,26 @@ export async function incrementReaction(id: string, type: 'likes' | 'dislikes'):
     return false;
   }
 }
+
+export async function addBriefingComment(briefingId: string, content: string, authorName: string): Promise<boolean> {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, briefingId);
+    const newComment = {
+      id: crypto.randomUUID(),
+      content,
+      createdAt: Date.now(),
+      authorName
+    };
+    
+    // Using an array union could be done with arrayUnion from firestore, 
+    // but since we don't have it imported, let's just fetch and update or import arrayUnion.
+    const { arrayUnion } = await import('firebase/firestore');
+    await updateDoc(docRef, {
+      adminComments: arrayUnion(newComment)
+    });
+    return true;
+  } catch (error) {
+    console.error('Error adding briefing comment:', error);
+    return false;
+  }
+}
