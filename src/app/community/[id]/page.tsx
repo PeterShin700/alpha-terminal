@@ -75,13 +75,32 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
 
   // --- Comment Actions ---
   const handleSubmitComment = async () => {
-    if (!user || !newComment.trim()) return;
+    if (!newComment.trim()) return;
+    
+    let currentUser = user;
+    if (!currentUser) {
+      const confirmLogin = confirm('댓글을 등록하려면 로그인이 필요합니다. 구글 계정으로 3초 만에 로그인하시겠습니까?');
+      if (confirmLogin) {
+        try {
+          const { loginWithGoogle } = await import('@/lib/auth');
+          currentUser = await loginWithGoogle();
+        } catch (error) {
+          alert('로그인에 실패했습니다.');
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+    
+    if (!currentUser) return;
+    
     setIsSubmittingComment(true);
     const newId = await addComment({
       postId,
       parentId: replyTo,
-      authorId: user.uid,
-      authorName: user.displayName || '익명',
+      authorId: currentUser.uid,
+      authorName: currentUser.displayName || '익명',
       content: newComment.trim()
     });
     setIsSubmittingComment(false);
@@ -234,7 +253,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                   />
                   <button 
                     onClick={handleSubmitComment}
-                    disabled={!user || isSubmittingComment}
+                    disabled={isSubmittingComment}
                     className="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold disabled:opacity-50"
                   >
                     등록
@@ -291,26 +310,12 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
             <textarea 
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
-              onClick={async () => {
-                if (!user) {
-                  const confirmLogin = confirm('로그인이 필요한 기능입니다. 구글 계정으로 로그인하시겠습니까?');
-                  if (confirmLogin) {
-                    try {
-                      const { loginWithGoogle } = await import('@/lib/auth');
-                      await loginWithGoogle();
-                    } catch (error) {
-                      alert('로그인에 실패했습니다.');
-                    }
-                  }
-                }
-              }}
-              placeholder={user ? "댓글을 작성해주세요..." : "로그인 후 댓글을 남길 수 있습니다. 클릭하여 로그인하세요."}
-              readOnly={!user}
-              className={`flex-1 border p-3 rounded text-sm h-20 focus:ring-1 focus:ring-blue-500 ${!user ? 'cursor-pointer bg-gray-50' : ''}`}
+              placeholder="댓글을 작성해주세요..."
+              className="flex-1 border p-3 rounded text-sm h-20 focus:ring-1 focus:ring-blue-500"
             />
             <button 
               onClick={handleSubmitComment}
-              disabled={!user || isSubmittingComment || !newComment.trim()}
+              disabled={isSubmittingComment || !newComment.trim()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm font-bold disabled:opacity-50"
             >
               댓글 등록

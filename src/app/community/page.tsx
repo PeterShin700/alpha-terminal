@@ -25,11 +25,32 @@ export default function CommunityPage() {
   }
 
   async function handleSubmit() {
-    if (!user || !newContent.trim()) return;
+    if (!newContent.trim()) return;
+    
+    let currentUser = user;
+    
+    // 비로그인 상태일 때 가입/로그인 유도
+    if (!currentUser) {
+      const confirmLogin = confirm('글을 등록하려면 로그인이 필요합니다. 구글 계정으로 3초 만에 로그인하시겠습니까?');
+      if (confirmLogin) {
+        try {
+          const { loginWithGoogle } = await import('@/lib/auth');
+          currentUser = await loginWithGoogle();
+        } catch (error) {
+          alert('로그인에 실패했습니다.');
+          return;
+        }
+      } else {
+        return; // 사용자가 로그인 취소
+      }
+    }
+
+    if (!currentUser) return; // 최후 방어코드
+
     setIsSubmitting(true);
     const id = await addPost({
-      authorId: user.uid,
-      authorName: user.displayName || '익명',
+      authorId: currentUser.uid,
+      authorName: currentUser.displayName || '익명',
       content: newContent.trim()
     });
     setIsSubmitting(false);
@@ -47,23 +68,7 @@ export default function CommunityPage() {
       <div className="flex justify-between items-center border-b pb-4 mb-8">
         <h1 className="text-3xl font-extrabold text-gray-900">자유게시판</h1>
         <button 
-          onClick={async () => {
-            if (!user) {
-              const confirmLogin = confirm('로그인이 필요한 기능입니다. 구글 계정으로 로그인하시겠습니까?');
-              if (confirmLogin) {
-                try {
-                  const { loginWithGoogle } = await import('@/lib/auth');
-                  await loginWithGoogle();
-                  // Automatically open writing area after successful login
-                  setIsWriting(true);
-                } catch (error) {
-                  alert('로그인에 실패했습니다.');
-                }
-              }
-              return;
-            }
-            setIsWriting(!isWriting);
-          }}
+          onClick={() => setIsWriting(!isWriting)}
           className="bg-gray-900 text-white px-4 py-2 rounded font-bold hover:bg-gray-800 transition"
         >
           {isWriting ? '취소' : '글쓰기'}
