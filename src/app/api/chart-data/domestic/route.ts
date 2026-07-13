@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }, { status: 400 });
   }
 
-  const cacheKey = `chart_domestic_v5_${symbol}`;
+  const cacheKey = `chart_domestic_v6_${symbol}`;
 
   try {
     const cachedData = await getMarketData(cacheKey);
