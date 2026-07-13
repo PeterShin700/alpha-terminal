@@ -11,6 +11,8 @@ export default function LiquidityPage() {
   const [netForeign, setNetForeign] = useState<number | null>(null);
   const [netInstitution, setNetInstitution] = useState<number | null>(null);
   const [programTrend, setProgramTrend] = useState<number[] | null>(null);
+  const [ssInvestors, setSsInvestors] = useState<any[]>([]);
+  const [skInvestors, setSkInvestors] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -29,6 +31,17 @@ export default function LiquidityPage() {
         }
       } catch (err) {
         console.error("Failed to load liquidity data", err);
+      }
+
+      try {
+        const [ss, sk] = await Promise.all([
+          fetch('/api/krx-investors?symbol=005930').then(res => res.json()),
+          fetch('/api/krx-investors?symbol=000660').then(res => res.json())
+        ]);
+        if (ss.success && ss.data) setSsInvestors(ss.data);
+        if (sk.success && sk.data) setSkInvestors(sk.data);
+      } catch (err) {
+        console.error("Failed to load KRX investor data", err);
       }
     }
     fetchData();
@@ -160,12 +173,62 @@ export default function LiquidityPage() {
                 <div ref={ssRef} className="absolute inset-0" />
                 {isLoadingCharts && <div className="absolute inset-0 bg-gray-100 animate-pulse rounded-md border flex items-center justify-center text-gray-400 z-10">Loading Chart Data...</div>}
               </div>
+              <h4 className="font-bold text-gray-800 mb-2 mt-6">최근 수급 현황 (KRX)</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-center border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b">
+                      <th className="py-2 px-1">일자</th>
+                      <th className="py-2 px-1 text-red-600">외국인</th>
+                      <th className="py-2 px-1 text-blue-600">기관</th>
+                      <th className="py-2 px-1 text-gray-600">개인</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ssInvestors.length > 0 ? ssInvestors.map((inv, idx) => (
+                      <tr key={idx} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-1 text-gray-500">{inv.date}</td>
+                        <td className={`py-2 px-1 font-bold ${inv.foreign > 0 ? 'text-red-500' : inv.foreign < 0 ? 'text-blue-500' : 'text-gray-500'}`}>{inv.foreign.toLocaleString()}</td>
+                        <td className={`py-2 px-1 font-bold ${inv.institution > 0 ? 'text-red-500' : inv.institution < 0 ? 'text-blue-500' : 'text-gray-500'}`}>{inv.institution.toLocaleString()}</td>
+                        <td className={`py-2 px-1 font-bold ${inv.individual > 0 ? 'text-red-500' : inv.individual < 0 ? 'text-blue-500' : 'text-gray-500'}`}>{inv.individual.toLocaleString()}</td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={4} className="py-4 text-gray-400">데이터를 불러오는 중이거나 없습니다.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
             <div>
               <h4 className="font-bold text-gray-800 mb-2">SK하이닉스 (000660)</h4>
               <div className="h-80 relative">
                 <div ref={skRef} className="absolute inset-0" />
                 {isLoadingCharts && <div className="absolute inset-0 bg-gray-100 animate-pulse rounded-md border flex items-center justify-center text-gray-400 z-10">Loading Chart Data...</div>}
+              </div>
+              <h4 className="font-bold text-gray-800 mb-2 mt-6">최근 수급 현황 (KRX)</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-center border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b">
+                      <th className="py-2 px-1">일자</th>
+                      <th className="py-2 px-1 text-red-600">외국인</th>
+                      <th className="py-2 px-1 text-blue-600">기관</th>
+                      <th className="py-2 px-1 text-gray-600">개인</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {skInvestors.length > 0 ? skInvestors.map((inv, idx) => (
+                      <tr key={idx} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-1 text-gray-500">{inv.date}</td>
+                        <td className={`py-2 px-1 font-bold ${inv.foreign > 0 ? 'text-red-500' : inv.foreign < 0 ? 'text-blue-500' : 'text-gray-500'}`}>{inv.foreign.toLocaleString()}</td>
+                        <td className={`py-2 px-1 font-bold ${inv.institution > 0 ? 'text-red-500' : inv.institution < 0 ? 'text-blue-500' : 'text-gray-500'}`}>{inv.institution.toLocaleString()}</td>
+                        <td className={`py-2 px-1 font-bold ${inv.individual > 0 ? 'text-red-500' : inv.individual < 0 ? 'text-blue-500' : 'text-gray-500'}`}>{inv.individual.toLocaleString()}</td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={4} className="py-4 text-gray-400">데이터를 불러오는 중이거나 없습니다.</td></tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
