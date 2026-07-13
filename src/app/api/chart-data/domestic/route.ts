@@ -30,7 +30,6 @@ export async function GET(request: Request) {
     }, { status: 400 });
   }
 
-  const itmsNm = ALLOWED_ITEMS[symbol];
   const cacheKey = `chart_domestic_v5_${symbol}`;
 
   try {
@@ -41,27 +40,12 @@ export async function GET(request: Request) {
 
     let series: ChartData[] = [];
 
-    if (symbol === '005930' || symbol === '000660') {
-      const apiKey = process.env.DATA_GO_KR_STOCK_API_KEY;
-      if (!apiKey) throw new Error('Stock API Key is missing');
+    if (symbol === '005930' || symbol === '000660' || symbol === 'K2I1') {
+      let yahooSymbol = '';
+      if (symbol === '005930') yahooSymbol = '005930.KS';
+      else if (symbol === '000660') yahooSymbol = '000660.KS';
+      else if (symbol === 'K2I1') yahooSymbol = '^KS200';
 
-      const url = `https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo?serviceKey=${apiKey}&resultType=json&numOfRows=100&itmsNm=${encodeURIComponent(itmsNm)}`;
-      const response = await fetch(url);
-      
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const json = await response.json();
-      const items = json?.response?.body?.items?.item;
-      if (!items || !Array.isArray(items)) throw new Error('Invalid API response structure');
-
-      series = items.map((item: { basDt: string; mkp: string; hipr: string; lopr: string; clpr: string }) => {
-        const dateStr = item.basDt.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
-        return {
-          time: dateStr, open: Number(item.mkp), high: Number(item.hipr), low: Number(item.lopr), close: Number(item.clpr)
-        };
-      }).sort((a: ChartData, b: ChartData) => a.time.localeCompare(b.time));
-    } else if (symbol === 'K2I1') {
-      // Yahoo Finance 연동 (코스피200: ^KS200)
-      const yahooSymbol = '^KS200';
       const period1 = new Date();
       period1.setMonth(period1.getMonth() - 6);
       
