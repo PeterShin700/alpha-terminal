@@ -7,6 +7,11 @@ export async function GET(request: Request) {
   if (!symbol) {
     return NextResponse.json({ success: false, error: 'Symbol is required' }, { status: 400 });
   }
+  
+  // Translate to KRX standard code (ISIN)
+  let isuCd = symbol;
+  if (symbol === '005930') isuCd = 'KR7005930003';
+  if (symbol === '000660') isuCd = 'KR7000660001';
 
   try {
     const apiKey = process.env.KRX_API_KEY;
@@ -39,8 +44,7 @@ export async function GET(request: Request) {
     const strtDd = formatDate(lastWeek);
 
     // KRX Open API: 투자자별 거래실적 (개별종목)
-    // usually short code is like '005930'. For KRX API it might require full standard code, but we'll try short code.
-    const url = `http://data-dbg.krx.co.kr/svc/apis/sto/stk_bydd_trd?isuCd=${symbol}&strtDd=${strtDd}&endDd=${endDd}`;
+    const url = `http://data-dbg.krx.co.kr/svc/apis/sto/stk_bydd_trd?isuCd=${isuCd}&strtDd=${strtDd}&endDd=${endDd}`;
 
     const res = await fetch(url, {
       headers: {
@@ -64,27 +68,11 @@ export async function GET(request: Request) {
       individual: Number(item.INDV_NTVAL_TRDVOL || item.indvNtvalTrdvol || item.indv_ntval_trdvol || 0),
     }));
 
-    return NextResponse.json({ success: true, data: formattedData.length > 0 ? formattedData : [
-          { date: '20260713', foreign: 15000, institution: -5000, individual: -10000 },
-          { date: '20260712', foreign: -2000, institution: 8000, individual: -6000 },
-          { date: '20260711', foreign: 12000, institution: 3000, individual: -15000 },
-          { date: '20260710', foreign: 8000, institution: 1000, individual: -9000 },
-          { date: '20260709', foreign: -5000, institution: -2000, individual: 7000 },
-        ] });
+    return NextResponse.json({ success: true, data: formattedData });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error fetching KRX data:", error);
-    // fallback to mock for now if failing
-    return NextResponse.json({
-        success: true,
-        data: [
-          { date: '20260713', foreign: 15000, institution: -5000, individual: -10000 },
-          { date: '20260712', foreign: -2000, institution: 8000, individual: -6000 },
-          { date: '20260711', foreign: 12000, institution: 3000, individual: -15000 },
-          { date: '20260710', foreign: 8000, institution: 1000, individual: -9000 },
-          { date: '20260709', foreign: -5000, institution: -2000, individual: 7000 },
-        ]
-      });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
