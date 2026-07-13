@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }, { status: 400 });
   }
 
-  const cacheKey = `chart_domestic_v6_${symbol}`;
+  const cacheKey = `chart_domestic_v7_${symbol}`;
 
   try {
     const cachedData = await getMarketData(cacheKey);
@@ -58,14 +58,14 @@ export async function GET(request: Request) {
 
       series = result.quotes
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((q: any) => q.open !== null && q.high !== null && q.low !== null && q.close !== null)
+        .filter((q: any) => q.open !== null && q.high !== null && q.low !== null)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((q: any) => ({
           time: q.date.toISOString().split('T')[0],
           open: q.open as number,
           high: q.high as number,
           low: q.low as number,
-          close: q.close as number
+          close: (q.close ?? q.open) as number
         }));
     } else if (symbol === 'VKOSPI') {
       throw new Error('VKOSPI 데이터는 현재 지원되지 않는 지표입니다. (증권사 API 연동 대기중)');
