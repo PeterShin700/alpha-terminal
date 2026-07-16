@@ -53,10 +53,17 @@ export async function GET(request: Request) {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        return NextResponse.json({ success: false, error: 'Unauthorized Key or Not Subscribed to Data Product' });
+      }
       throw new Error(`KRX API responded with status: ${res.status}`);
     }
 
     const json = await res.json();
+    if (json.respCode === '401') {
+      return NextResponse.json({ success: false, error: json.respMsg || 'Unauthorized API Call' });
+    }
+    
     const rawData = json.OutBlock_1 || json.output || json.body?.items?.item || [];
     
     // mapping known fields from KRX
