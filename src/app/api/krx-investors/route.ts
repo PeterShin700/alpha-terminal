@@ -8,10 +8,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Symbol is required' }, { status: 400 });
   }
   
-  // Translate to KRX standard code (ISIN)
-  let isuCd = symbol;
-  if (symbol === '005930') isuCd = 'KR7005930003';
-  if (symbol === '000660') isuCd = 'KR7000660001';
+  // Remove unused isuCd mapping entirely
 
   try {
     const url = `https://finance.naver.com/item/frgn.naver?code=${symbol}`;
@@ -27,10 +24,17 @@ export async function GET(request: Request) {
     const html = iconv.decode(Buffer.from(buffer), 'EUC-KR');
     const $ = cheerio.load(html);
     
-    const formattedData: any[] = [];
-    $('table.type2 tr').each((i, el) => {
+    interface InvestorData {
+      date: string;
+      institution: number;
+      foreign: number;
+      individual: number;
+    }
+    
+    const formattedData: InvestorData[] = [];
+    $('table.type2 tr').each((i: number, el: unknown) => {
       if (formattedData.length >= 5) return;
-      const tds = $(el).find('td');
+      const tds = $(el as cheerio.Element).find('td');
       if (tds.length >= 7) {
         const date = $(tds[0]).text().trim();
         const instStr = $(tds[5]).text().trim().replace(/,/g, '');
@@ -54,8 +58,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data: formattedData });
 
-  } catch (error: any) {
-    console.error("Error fetching KRX data:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("Error fetching Naver data:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
