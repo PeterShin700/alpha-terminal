@@ -32,9 +32,10 @@ export async function GET(request: Request) {
     }
     
     const formattedData: InvestorData[] = [];
-    $('table.type2 tr').each((i: number, el: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    $('table.type2 tr').each((i: number, el: any) => {
       if (formattedData.length >= 5) return;
-      const tds = $(el as cheerio.Element).find('td');
+      const tds = $(el).find('td');
       if (tds.length >= 7) {
         const date = $(tds[0]).text().trim();
         const instStr = $(tds[5]).text().trim().replace(/,/g, '');
